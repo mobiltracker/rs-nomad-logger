@@ -1,3 +1,4 @@
+use nomad_logger::log;
 use nomad_logger::*;
 use serde::{Deserialize, Serialize};
 

@@ -67,9 +67,9 @@ macro_rules! nomad_log {
     ($lvl:expr, $e: expr) => {
             let as_any = (&$e as &dyn std::any::Any);
             if let Some(_f) = as_any.downcast_ref::<String>() {
-                log::log!($lvl, "{}", _f);
+                nomad_logger::log!($lvl, "{}", _f);
             } else if let Some(_f) = as_any.downcast_ref::<&str>() {
-                log::log!($lvl, "{}", _f);
+                nomad_logger::log!($lvl, "{}", _f);
             } else {
                 nomad_logger::nomad_log_serializable!($lvl, $e, Serialize)
             }
@@ -79,7 +79,7 @@ macro_rules! nomad_log {
 #[macro_export]
 macro_rules! nomad_log_serializable {
     ($lvl:expr, $e: expr, Serialize) => {
-        log::log!($lvl, "{}", serde_json::to_string(&$e).unwrap());
+        nomad_logger::log!($lvl, "{}", serde_json::to_string(&$e).unwrap());
     };
 }
 
