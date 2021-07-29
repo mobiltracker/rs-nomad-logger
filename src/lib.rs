@@ -105,13 +105,18 @@ impl Default for NomadLogger {
 
 impl log::Log for NomadLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
+        metadata.level() <= self.max_log_level
     }
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let log = self.format_log(record);
-            println!("{}", serde_json::to_string(&log).unwrap());
+
+            if record.level() == Level::Error {
+                eprintln!("{}", serde_json::to_string(&log).unwrap());
+            } else {
+                println!("{}", serde_json::to_string(&log).unwrap());
+            }
         }
     }
 
