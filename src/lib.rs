@@ -86,7 +86,7 @@ macro_rules! nomad_log_serializable {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NomadLog {
     pub timestamp: i64,
-    pub log_level: String,
+    pub log_level: log::Level,
     pub data: serde_json::Value,
 }
 
@@ -168,13 +168,13 @@ impl NomadLogger {
         if let Ok(json) = json {
             NomadLog {
                 data: json,
-                log_level: record.level().to_string(),
+                log_level: record.level(),
                 timestamp: chrono::Utc::now().timestamp_millis(),
             }
         } else {
             NomadLog {
                 data: serde_json::to_value(arg).expect("Failed to parse log data"),
-                log_level: record.level().to_string(),
+                log_level: record.level(),
                 timestamp: chrono::Utc::now().timestamp_millis(),
             }
         }
