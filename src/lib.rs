@@ -85,9 +85,9 @@ macro_rules! nomad_log_serializable {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NomadLog {
-    timestamp: i64,
-    log_level: String,
-    data: serde_json::Value,
+    pub timestamp: i64,
+    pub log_level: String,
+    pub data: serde_json::Value,
 }
 
 #[derive(Debug)]
