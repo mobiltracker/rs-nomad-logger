@@ -1,58 +1,61 @@
-use std::fmt::Debug;
+pub use log::log;
+pub use log::Level;
 
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
-use serde::Serialize;
+use lazy_static::lazy_static;
+use log::{Metadata, Record, SetLoggerError};
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 #[macro_export]
 macro_rules! info {
     ($e: expr, $($arg:tt)+) => {
-        nomad_log!(log::Level::Info, $e, $($arg)+);
+        nomad_logger::nomad_log!(log::Level::Info, $e, $($arg)+);
     };
 
     ($e: expr) => {
-        nomad_log!(log::Level::Info, $e);
+        nomad_logger::nomad_log!(log::Level::Info, $e);
     };
 }
 
 #[macro_export]
 macro_rules! error {
     ($e: expr, $($arg:tt)+) => {
-        nomad_log!(log::Level::Error, $e,$($arg)+);
+        nomad_logger::nomad_log!(log::Level::Error, $e,$($arg)+);
     };
 
     ($e: expr) => {
-        nomad_log!(log::Level::Error, $e);
+        nomad_logger::nomad_log!(log::Level::Error, $e);
     };
 }
 
 #[macro_export]
 macro_rules! warn {
     ($e: expr, $($arg:tt)+) => {
-        nomad_log!(log::Level::Warn, $e,$($arg)+);
+        nomad_logger::nomad_log!(log::Level::Warn, $e,$($arg)+);
     };
 
     ($e: expr) => {
-        nomad_log!(log::Level::Warn, $e);
+        nomad_logger::nomad_log!(log::Level::Warn, $e);
     };
 }
 
 #[macro_export]
 macro_rules! debug {
     ($e: expr, $($arg:tt)+) => {
-        nomad_log!(log::Level::Debug, $e,$($arg)+);
+        nomad_logger::nomad_log!(log::Level::Debug, $e,$($arg)+);
     };
     ($e: expr) => {
-        nomad_log!(log::Level::Debug, $e);
+        nomad_logger::nomad_log!(log::Level::Debug, $e);
     };
 }
 
 #[macro_export]
 macro_rules! trace {
     ($e: expr, $($arg:tt)+) => {
-        nomad_log!(log::Level::Trace, $e,$($arg)+);
+        nomad_logger::nomad_log!(log::Level::Trace, $e,$($arg)+);
     };
     ($e: expr) => {
-        nomad_log!(log::Level::Trace, $e);
+        nomad_logger::nomad_log!(log::Level::Trace, $e);
     };
 }
 
@@ -68,7 +71,7 @@ macro_rules! nomad_log {
             } else if let Some(_f) = as_any.downcast_ref::<&str>() {
                 log::log!($lvl, "{}", _f);
             } else {
-                 crate::nomad_log_serializable!($lvl, $e, Serialize)
+                nomad_logger::nomad_log_serializable!($lvl, $e, Serialize)
             }
     };
 }
@@ -80,23 +83,15 @@ macro_rules! nomad_log_serializable {
     };
 }
 
-#[derive(Debug, Serialize)]
-struct NomadLog {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NomadLog {
     timestamp: i64,
     log_level: String,
     data: serde_json::Value,
 }
 
-pub fn setup() {
-    if std::env::var("RUST_LIB_BACKTRACE").is_err() {
-        std::env::set_var("RUST_LIB_BACKTRACE", "1")
-    }
-    stable_eyre::install().unwrap();
-    NomadLogger::default().init().unwrap();
-}
-
 #[derive(Debug)]
-struct NomadLogger {
+pub struct NomadLogger {
     max_log_level: Level,
 }
 
@@ -124,8 +119,42 @@ impl log::Log for NomadLogger {
 }
 
 impl NomadLogger {
-    pub fn init(self) -> Result<(), SetLoggerError> {
-        log::set_boxed_logger(Box::new(self)).map(|()| log::set_max_level(LevelFilter::Info))
+    pub fn install_default() {
+        if std::env::var("RUST_LIB_BACKTRACE").is_err() {
+            std::env::set_var("RUST_LIB_BACKTRACE", "1")
+        }
+        stable_eyre::install().unwrap();
+        NomadLogger::default().init().unwrap();
+    }
+
+    pub fn install(self) {
+        if std::env::var("RUST_LIB_BACKTRACE").is_err() {
+            std::env::set_var("RUST_LIB_BACKTRACE", "1")
+        }
+        stable_eyre::install().unwrap();
+        self.init().unwrap();
+    }
+
+    pub fn with_log_level(self, max_log_level: Level) -> Self {
+        Self { max_log_level }
+    }
+
+    fn init(self) -> Result<(), SetLoggerError> {
+        lazy_static! {
+            /// This is an example for using doc comment attributes
+            static ref INIT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        };
+
+        let is_init = INIT.load(std::sync::atomic::Ordering::SeqCst);
+
+        if is_init {
+            panic!("Nomad Logger already initialized");
+        };
+
+        INIT.store(true, std::sync::atomic::Ordering::SeqCst);
+
+        let filter = self.max_log_level.to_level_filter();
+        log::set_boxed_logger(Box::new(self)).map(|()| log::set_max_level(filter))
     }
 
     fn format_log(&self, record: &Record) -> NomadLog {

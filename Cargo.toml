@@ -1,5 +1,5 @@
 [package]
-name = "rs-nomad-logger"
+name = "nomad-logger"
 version = "0.1.0"
 authors = ["mlcruz1 <mlcruz@inf.ufrgs.br>"]
 edition = "2018"
@@ -7,9 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
+log = { version = "0.4", features = ["std", "serde"] }
 eyre = "0.6"
 stable-eyre = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.4.0"
