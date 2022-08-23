@@ -87,7 +87,6 @@ macro_rules! nomad_log_serializable {
 pub struct NomadLog {
     pub timestamp: i64,
     pub log_level: log::Level,
-    #[serde(flatten)]
     pub data: serde_json::Value,
 }
 
